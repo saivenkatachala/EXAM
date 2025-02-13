@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Portal</title>
+  <link rel="icon" href="speech-bubble-for-comic-text-quiz-cartoon-comic-sign-effects-explosion-png.png">
+    <link rel="stylesheet" href="style1.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Student Details Form -->
+    <form id="studentDetailsForm">
+      <h1>Student Details</h1>
+      <div class="form-group">
+        <label for="studentName">Name:</label>
+        <input type="text" id="studentName" placeholder="Enter your name" required>
+      </div>
+      <div class="form-group">
+        <label for="studentEmail">Email:</label>
+        <input type="email" id="studentEmail" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="examSelector">Select Exam:</label>
+        <select id="examSelector" required>
+          <option value="">Choose an exam</option>
+          <option value="Math">Math</option>
+          <option value="Science">Science</option>
+          <option value="History">History</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">Start Exam</button>
+    </form>
+
+    <!-- Quiz Form -->
+    <form id="quizForm">
+      <div class="header">
+        <div id="studentInfo"></div>
+        <div id="timer">Time Left: 30:00</div>
+      </div>
+      <div class="question-menu" id="questionMenu">
+        <h3>Questions</h3>
+        <ul id="questionList"></ul>
+      </div>
+      <div id="questionsContainer"></div>
+      <div class="navigation">
+        <button type="button" id="prevBtn" class="btn" disabled>Previous</button>
+        <button type="button" id="clearBtn" class="btn" onclick="clearAnswer()">Clear</button>
+        <button type="button" id="nextBtn" class="btn">Save & Next</button>
+      </div>
+      <button type="button" id="submitBtn" class="submitBtn" style="display: none;" onclick="submitQuiz()">Submit Exam</button>
+      <button type="button" id="backToHomeBtn" class="btn" style="display: none; margin-top: 20px;" onclick="backToHome()">Back to Home</button>
+    </form>
+
+    <!-- Result Section -->
+    <div id="result">
+      <div class="emoji" id="resultEmoji"></div>
+      <h2>Result</h2>
+      <p>Total Marks: <span id="totalMarks"></span></p>
+      <p>Grade: <span id="grade"></span></p>
+      <p>Status: <span id="status"></span></p>
+    </div>
+  </div>
+
+  <script>
+    const studentDetailsForm = document.getElementById('studentDetailsForm');
+    const quizForm = document.getElementById('quizForm');
+    const studentInfo = document.getElementById('studentInfo');
+    const timer = document.getElementById('timer');
+    const questionsContainer = document.getElementById('questionsContainer');
+    const resultDiv = document.getElementById('result');
+    const totalMarksSpan = document.getElementById('totalMarks');
+    const gradeSpan = document.getElementById('grade');
+    const statusSpan = document.getElementById('status');
+    const questionMenu = document.getElementById('questionMenu');
+    const questionList = document.getElementById('questionList');
+    const resultEmoji = document.getElementById('resultEmoji');
+    const backToHomeBtn = document.getElementById('backToHomeBtn');
+
+    let currentQuestion = 0;
+    let timeLeft = 1800; // 30 minutes in seconds
+    let studentName = '';
+    let studentEmail = '';
+    let examName = '';
+    let questions = [];
+    let timerInterval;
+
+    // Exam questions data
+    const examQuestions = {
+      Math: [
+        {
+          question: "What is 2 + 2?",
+          options: ["A) 3", "B) 4", "C) 5", "D) 6"],
+          correctAnswer: "B"
+        },
+        {
+          question: "What is 10 ÷ 2?",
+          options: ["A) 2", "B) 5", "C) 10", "D) 20"],
+          correctAnswer: "B"
+        }
+      ],
+      Science: [
+        {
+          question: "What is the chemical symbol for water?",
+          options: ["A) H2O", "B) CO2", "C) O2", "D) NaCl"],
+          correctAnswer: "A"
+        },
+        {
+          question: "What is the boiling point of water?",
+          options: ["A) 50°C", "B) 100°C", "C) 150°C", "D) 200°C"],
+          correctAnswer: "B"
+        }
+      ],
+      History: [
+        {
+          question: "Who was the first President of the USA?",
+          options: ["A) George Washington", "B) Thomas Jefferson", "C) Abraham Lincoln", "D) John Adams"],
+          correctAnswer: "A"
+        },
+        {
+          question: "In which year did World War II end?",
+          options: ["A) 1943", "B) 1945", "C) 1950", "D) 1939"],
+          correctAnswer: "B"
+        }
+      ]
+    };
+
+    // Handle student details form submission
+    studentDetailsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      studentName = document.getElementById('studentName').value;
+      studentEmail = document.getElementById('studentEmail').value;
+      examName = document.getElementById('examSelector').value;
+
+      if (!studentName || !studentEmail || !examName) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      studentDetailsForm.style.display = 'none';
+      quizForm.style.display = 'block';
+      studentInfo.innerHTML = `Name: ${studentName} | Exam: ${examName}`;
+      loadQuestions();
+      updateTimer();
+    });
+
+    // Timer function
+    function updateTimer() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timer.textContent = `Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      if (timeLeft === 0) {
+        submitQuiz();
+      } else {
+        timeLeft--;
+        timerInterval = setTimeout(updateTimer, 1000);
+      }
+    }
+
+    // Stop timer
+    function stopTimer() {
+      clearTimeout(timerInterval);
+    }
+
+    // Load questions based on selected exam
+    function loadQuestions() {
+      questions = examQuestions[examName] || [];
+      questionsContainer.innerHTML = '';
+      questionList.innerHTML = '';
+      questions.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.innerHTML = `
+          <p>Question ${index + 1}: ${q.question}</p>
+          ${q.options.map(opt => `<label><input type="radio" name="q${index + 1}" value="${opt[0]}"> ${opt}</label><br>`).join('')}
+        `;
+        questionsContainer.appendChild(questionDiv);
+
+        const questionItem = document.createElement('li');
+        questionItem.textContent = `Q${index + 1}`;
+        questionItem.addEventListener('click', () => {
+          currentQuestion = index;
+          showQuestion(currentQuestion);
+        });
+        questionList.appendChild(questionItem);
+      });
+      currentQuestion = 0;
+      showQuestion(currentQuestion);
+    }
+
+    // Show current question
+    function showQuestion(index) {
+      const allQuestions = document.querySelectorAll('.question');
+      allQuestions.forEach((q, i) => {
+        q.style.display = i === index ? 'block' : 'none';
+      });
+      document.getElementById('prevBtn').disabled = index === 0;
+      document.getElementById('nextBtn').style.display = index === questions.length - 1 ? 'none' : 'block';
+      document.getElementById('submitBtn').style.display = index === questions.length - 1 ? 'block' : 'none';
+      updateQuestionMenu();
+    }
+
+    // Update question menu
+    function updateQuestionMenu() {
+      const questionItems = document.querySelectorAll('#questionList li');
+      questionItems.forEach((item, index) => {
+        const questionAnswered = document.querySelector(`input[name="q${index + 1}"]:checked`);
+        if (questionAnswered) {
+          item.classList.add('answered');
+          item.classList.remove('unanswered');
+        } else {
+          item.classList.add('unanswered');
+          item.classList.remove('answered');
+        }
+      });
+    }
+
+    // Clear answer for current question
+    function clearAnswer() {
+      const currentQuestionInputs = document.querySelectorAll(`input[name="q${currentQuestion + 1}"]`);
+      currentQuestionInputs.forEach(input => (input.checked = false));
+      updateQuestionMenu();
+    }
+
+    // Navigation
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (currentQuestion < questions.length - 1) {
+        currentQuestion++;
+        showQuestion(currentQuestion);
+      }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        showQuestion(currentQuestion);
+      }
+    });
+
+    // Submit quiz
+    function submitQuiz() {
+      const formData = new FormData(quizForm);
+      const responses = [];
+      for (let i = 1; i <= questions.length; i++) {
+        responses.push(formData.get(`q${i}`) || '');
+      }
+
+      // Check if all questions are answered
+      const unanswered = responses.filter(response => !response).length;
+      if (unanswered > 0) {
+        alert(`Please answer all questions. ${unanswered} questions are unanswered.`);
+        return;
+      }
+
+      // Calculate marks, grade, and status
+      const totalMarks = responses.filter((response, index) => response === questions[index].correctAnswer).length;
+      const grade = totalMarks >= questions.length * 0.8 ? 'A' : totalMarks >= questions.length * 0.6 ? 'B' : 'C';
+      const status = totalMarks >= questions.length * 0.5 ? 'Pass' : 'Fail';
+
+      // Display result
+      resultDiv.style.display = 'block';
+      totalMarksSpan.textContent = totalMarks;
+      gradeSpan.textContent = grade;
+      statusSpan.textContent = status;
+
+      // Set emoji based on status
+      if (status === 'Pass') {
+        resultEmoji.textContent = '🎉';
+      } else {
+        resultEmoji.textContent = '😢';
+      }
+
+      // Stop timer
+      stopTimer();
+
+      // Show Back to Home button
+      backToHomeBtn.style.display = 'block';
+
+      // Save data to Google Sheets
+      const data = {
+        studentName,
+        studentEmail,
+        examName,
+        responses,
+        totalMarks,
+        grade,
+        status
+      };
+
+      fetch('https://script.google.com/macros/s/AKfycbzUj2FvCqZMxhZaffx7EOfUTeu-wgZviPyqQLCglb67bDcPybh8fQzI2lZfHlbP8ASpEg/exec', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).then(response => {
+        if (response.ok) {
+          alert('Data saved successfully!');
+        } else {
+          alert('Error saving data.');
+        }
+      });
+    }
+
+    // Back to Home
+    function backToHome() {
+      location.reload();
+    }
+  </script>
+
+</body>
+
+</html>
